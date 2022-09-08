@@ -2,6 +2,10 @@
     "cmake.sourceDirectory": "${workspaceFolder}/example/linux",
     "cmake.configureOnOpen": true,
     "files.associations": {
-      "cstring": "cpp"
+      "cstring": "cpp",
+      "memory": "cpp",
+      "type_traits": "cpp",
+      "iostream": "cpp",
+      "sstream": "cpp"
     }
   }
