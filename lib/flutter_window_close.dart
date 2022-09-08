@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +11,7 @@ class FlutterWindowClose {
   FlutterWindowClose._();
 
   static Future<bool> Function()? _onWindowShoudClose;
+  static Future<void> Function(String?)? _onWindowSleep;
   static MethodChannel? _notificationChannel;
   static const MethodChannel _channel = MethodChannel('flutter_window_close');
 
@@ -65,11 +67,39 @@ class FlutterWindowClose {
           } else {
             _channel.invokeMethod('destroyWindow');
           }
+        } else if (call.method == 'onWindowsSleep') {
+          // Note: the 'destroyWindow' method just close the window without
+          // any confirming.
+          if (_onWindowSleep != null) {
+            await _onWindowSleep!(call.arguments);
+          }
         }
         return null;
       });
-      _notificationChannel = _channel;
+      _notificationChannel = channel;
     }
+  }
+
+  static void setWindowSleepHandler(Future<void> Function(String?)? handler) {
+    if (kIsWeb) throw Exception('The method does not work in Flutter Web.');
+    _onWindowSleep = handler;
+    if (_notificationChannel == null) {
+      setWindowShouldCloseHandler(null);
+    }
+    //   var channel = const MethodChannel('flutter_window_close_notification');
+    //   channel.setMethodCallHandler((call) async {
+    //     if (call.method == 'onWindowsSleep') {
+    //       log('fludd closs ::: ');
+    //       // Note: the 'destroyWindow' method just close the window without
+    //       // any confirming.
+    //       if (handler != null) {
+    //         handler(call.arguments);
+    //       }
+    //     }
+    //     return null;
+    //   });
+    //   _notificationChannel = channel;
+    // }
   }
 
   /// Sends a message to close the window hosting your Flutter app.
