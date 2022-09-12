@@ -145,6 +145,26 @@ namespace
 
             return TRUE;
         }
+//        if (iMessage ==  WM_QUERYENDSESSION)
+//        {
+//            if (wparam == ENDSESSION_CLOSEAPP)
+//            {
+//                auto args = std::make_unique<flutter::EncodableValue>("close app");
+//                channel_->InvokeMethod("onWindowsSleep", std::move(args));
+//            }
+//            else if (wparam == ENDSESSION_LOGOFF)
+//            {
+//                auto args = std::make_unique<flutter::EncodableValue>("ENDSESSION_LOGOFF");
+//                channel_->InvokeMethod("onWindowsSleep", std::move(args));
+//            }
+// else if (wparam == ENDSESSION_CRITICAL)
+//            {
+//                auto args = std::make_unique<flutter::EncodableValue>("ENDSESSION_CRITICAL");
+//                channel_->InvokeMethod("onWindowsSleep", std::move(args));
+//            }
+//
+//            return TRUE;
+//        }
         return oldProc(hWnd, iMessage, wparam, lparam);
     }
 
