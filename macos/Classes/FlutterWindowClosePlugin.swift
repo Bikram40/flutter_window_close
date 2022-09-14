@@ -42,8 +42,6 @@ public class FlutterWindowClosePlugin: NSObject, FlutterPlugin, NSWindowDelegate
                                                             name: NSWorkspace.willSleepNotification, object: nil)
           NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(sleepListener(_:)),
                                                             name: NSWorkspace.didWakeNotification, object: nil)
-      NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(sleepListener(_:)),
-                                                            name: NSWorkspace.didTerminateApplicationNotification, object: nil)
 
       }
 
@@ -56,10 +54,7 @@ public class FlutterWindowClosePlugin: NSObject, FlutterPlugin, NSWindowDelegate
           } else if aNotification.name == NSWorkspace.didWakeNotification {
                notificationChannel?.invokeMethod("onWindowsSleep", arguments: "woke_up")
               NSLog("Woke up")
-          }else if aNotification.name == NSWorkspace.didTerminateApplicationNotification {
-               notificationChannel?.invokeMethod("onWindowsSleep", arguments: "power_off")
-              NSLog("Power off")
-          } else {
+          }else {
               NSLog("Some other event other than the first two")
           }
       }

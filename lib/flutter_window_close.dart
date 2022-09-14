@@ -66,7 +66,8 @@ class FlutterWindowClose {
           } else {
             _channel.invokeMethod('destroyWindow');
           }
-        } else if (call.method == 'onWindowsSleep') {
+        }
+        else if (call.method == 'onWindowsSleep') {
           // Note: the 'destroyWindow' method just close the window without
           // any confirming.
           if (_onWindowSleep != null) {
