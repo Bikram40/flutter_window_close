@@ -1,14 +1,13 @@
 import Cocoa
 import FlutterMacOS
 
-public class FlutterWindowClosePlugin: NSObject, FlutterPlugin, NSWindowDelegate, NSApplicationDelegate {
+public class FlutterWindowClosePlugin: NSObject, FlutterPlugin, NSWindowDelegate {
     var window: NSWindow?
     var notificationChannel: FlutterMethodChannel?
-    var eventChannel: FlutterEventChannel?
 
 //       @IBOutlet var window: NSWindow!
 
-      public var logoutTaskLaunched = false
+    public var logoutTaskLaunched = false
 
 //       public func launchLogoutTask() {
 //           assert(!logoutTaskLaunched, "Logout task was already launched")
@@ -41,41 +40,50 @@ public class FlutterWindowClosePlugin: NSObject, FlutterPlugin, NSWindowDelegate
 //           }
 //       }
 
-       public func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-          let reason = NSAppleEventManager.shared()
-              .currentAppleEvent?
-              .attributeDescriptor(forKeyword: kAEQuitReason)
+    public func applicationShouldTerminate(_ controller: FlutterViewController) -> NSApplication.TerminateReply {
+        NSLog("listneing .. temrmr")
 
-          switch reason?.enumCodeValue {
-          case kAELogOut, kAEReallyLogOut:
-               NSLog("Logout")
-              if !logoutTaskLaunched {
-//                   launchLogoutTask()
-              }
-              return .terminateLater
+        let notificationChannel = FlutterMethodChannel(name: "flutter_window_close_notification",
+                                                       binaryMessenger: controller.engine.binaryMessenger)
+        let reason = NSAppleEventManager.shared()
+            .currentAppleEvent?
+            .attributeDescriptor(forKeyword: kAEQuitReason)
 
-          case kAERestart, kAEShowRestartDialog:
-               NSLog("Restart")
-              return .terminateNow
+        switch reason?.enumCodeValue {
+        case kAELogOut, kAEReallyLogOut:
+            NSLog("Logout")
+            notificationChannel.invokeMethod("onWindowsSleep", arguments: "terminate_app")
+//               if !logoutTaskLaunched {
+//                 launchLogoutTask()
+//               }
+            return .terminateLater
 
-          case kAEShutDown, kAEShowShutdownDialog:
-               NSLog("Shutdown")
-              return .terminateNow
+        case kAERestart, kAEShowRestartDialog:
+            NSLog("Restart")
+            return .terminateNow
 
-          case 0:
-              // `enumCodeValue` docs:
-              //
-              //    The contents of the descriptor, as an enumeration type,
-              //    or 0 if an error occurs.
-               NSLog("We don't know")
-              return .terminateNow
+        case kAEShutDown, kAEShowShutdownDialog:
+            NSLog("Shutdown")
+            notificationChannel.invokeMethod("onWindowsSleep", arguments: "terminate_app")
+            return .terminateLater
 
-          default:
-               NSLog("Cmd-Q, Quit menu item, ...")
-              return .terminateLater
-          }
-      }
+        case 0:
+            // `enumCodeValue` docs:
+            //
+            //    The contents of the descriptor, as an enumeration type,
+            //    or 0 if an error occurs.
+            NSLog("We don't know")
+            notificationChannel.invokeMethod("onWindowsSleep", arguments: "terminate_app")
+            return .terminateLater
+
+        default:
+            NSLog("Cmd-Q, Quit menu item, ...")
+            notificationChannel.invokeMethod("onWindowsSleep", arguments: "terminate_app")
+            return .terminateLater
+        }
+    }
     public static func register(with registrar: FlutterPluginRegistrar) {
+        NSLog("registrar ..... ")
         let channel = FlutterMethodChannel(name: "flutter_window_close", binaryMessenger: registrar.messenger)
         let instance = FlutterWindowClosePlugin()
         instance.notificationChannel = FlutterMethodChannel(name: "flutter_window_close_notification", binaryMessenger: registrar.messenger)
@@ -91,7 +99,13 @@ public class FlutterWindowClosePlugin: NSObject, FlutterPlugin, NSWindowDelegate
             self.window?.performClose(nil)
             result(nil)
         case "destroyWindow":
-            self.window?.close()
+           self.window?.close()
+            result(nil)
+        case "terminateWindow":
+            NSLog("Going to close app")
+            DispatchQueue.main.async {
+                NSApp.reply(toApplicationShouldTerminate: true)
+            }
             result(nil)
         default:
             result(FlutterMethodNotImplemented)
@@ -107,35 +121,35 @@ public class FlutterWindowClosePlugin: NSObject, FlutterPlugin, NSWindowDelegate
 
     public func applicationDidFinishLaunching2() {
 
-          NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(sleepListener(_:)),
-                                                            name: NSWorkspace.willSleepNotification, object: nil)
-          NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(sleepListener(_:)),
-                                                            name: NSWorkspace.didWakeNotification, object: nil)
- NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(sleepListener(_:)),
-                                                            name: NSWorkspace.willPowerOffNotification, object: nil)
- NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(sleepListener(_:)),
-                                                            name: NSWorkspace.didTerminateApplicationNotification, object: nil)
+        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(sleepListener(_:)),
+                                                          name: NSWorkspace.willSleepNotification, object: nil)
+        NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(sleepListener(_:)),
+                                                          name: NSWorkspace.didWakeNotification, object: nil)
+//  NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(sleepListener(_:)),
+//                                                             name: NSWorkspace.willPowerOffNotification, object: nil)
+//  NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(sleepListener(_:)),
+//                                                             name: NSWorkspace.didTerminateApplicationNotification, object: nil)
+//
+
+    }
 
 
-   }
+    @objc public func sleepListener(_ aNotification: Notification) {
 
-
-      @objc public func sleepListener(_ aNotification: Notification) {
-          
-          if aNotification.name == NSWorkspace.willSleepNotification {
-              notificationChannel?.invokeMethod("onWindowsSleep", arguments: "sleep")
-              NSLog("Going to sleep")
-          } else if aNotification.name == NSWorkspace.didWakeNotification {
-               notificationChannel?.invokeMethod("onWindowsSleep", arguments: "woke_up")
-              NSLog("Woke up")
-          }else if aNotification.name == NSWorkspace.willPowerOffNotification {
-               notificationChannel?.invokeMethod("onWindowsSleep", arguments: "power_off")
-             NSLog("power off")
-          }else if aNotification.name == NSWorkspace.didTerminateApplicationNotification {
-                          notificationChannel?.invokeMethod("onWindowsSleep", arguments: "terminate_app")
-                         NSLog("terminate_app")
-                     } else {
-              NSLog("Some other event other than the first two")
-          }
-      }
+        if aNotification.name == NSWorkspace.willSleepNotification {
+            notificationChannel?.invokeMethod("onWindowsSleep", arguments: "sleep")
+            NSLog("Going to sleep")
+        } else if aNotification.name == NSWorkspace.didWakeNotification {
+            notificationChannel?.invokeMethod("onWindowsSleep", arguments: "woke_up")
+            NSLog("Woke up")
+        } else if aNotification.name == NSWorkspace.willPowerOffNotification {
+            notificationChannel?.invokeMethod("onWindowsSleep", arguments: "power_off")
+            NSLog("power off")
+        } else if aNotification.name == NSWorkspace.didTerminateApplicationNotification {
+            notificationChannel?.invokeMethod("onWindowsSleep", arguments: "terminate_app")
+            NSLog("terminate_app")
+        } else {
+            NSLog("Some other event other than the first two")
+        }
+    }
 }
